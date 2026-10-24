@@ -1,0 +1,52 @@
+name: Verify full application
+on: [push, pull_request]
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: churn_ci
+          POSTGRES_USER: churn_ci
+          POSTGRES_PASSWORD: ci_local_only
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U churn_ci -d churn_ci"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: postgresql://churn_ci:ci_local_only@127.0.0.1:5432/churn_ci
+      E2E_DATABASE_URL: postgresql://churn_ci:ci_local_only@127.0.0.1:5432/churn_ci
+      E2E_PYTHON: python
+      DJANGO_DEBUG: "true"
+      DJANGO_SECRET_KEY: ci-ephemeral-key-for-tests-only-not-for-deployment
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: pip install -r backend/requirements.lock.txt
+      - run: python backend/manage.py collectstatic --noinput
+      - run: python backend/manage.py test core.tests --verbosity 2
+      - run: python backend/manage.py spectacular --file backend/schema.yml --validate --fail-on-warn
+      - run: python backend/manage.py makemigrations --check --dry-run
+      - run: npm ci
+        working-directory: frontend
+      - run: npm test
+        working-directory: frontend
+      - run: npm run build
+        working-directory: frontend
+      - run: npx playwright install --with-deps chromium
+        working-directory: frontend
+      - run: npm run test:e2e
+        working-directory: frontend
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: browser-failure-evidence
+          path: frontend/test-results/

@@ -1,0 +1,14 @@
+Django>=5.2.8,<5.3
+djangorestframework>=3.16,<3.17
+django-cors-headers>=4.7,<5
+django-filter>=25.1,<26
+drf-spectacular>=0.28,<0.30
+psycopg[binary]>=3.2,<4
+dj-database-url>=2.3,<4
+python-dotenv>=1.1,<2
+gunicorn>=23,<24
+whitenoise>=6.9,<7
+scikit-learn==1.9.0
+pandas>=2.3,<3
+numpy>=2.2,<3
+joblib>=1.5,<2

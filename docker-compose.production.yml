@@ -1,0 +1,12 @@
+services:
+  backend:
+    environment:
+      DJANGO_DEBUG: "false"
+  frontend:
+    ports:
+      - "443:443"
+    volumes:
+      - ./deploy/nginx.production.conf:/etc/nginx/conf.d/default.conf:ro
+      - ${TLS_CERT_DIR:?Set TLS_CERT_DIR to your certificate directory}:/etc/nginx/certs:ro
+    healthcheck:
+      test: ["CMD", "wget", "--no-check-certificate", "-q", "--spider", "https://127.0.0.1/"]

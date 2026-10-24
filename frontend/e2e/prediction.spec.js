@@ -1,0 +1,71 @@
+import { test, expect } from '@playwright/test';
+
+test('register → real model prediction → persisted history → batch → download → analytics → logout', async ({ page }, testInfo) => {
+  const browserErrors = [];
+  page.on('pageerror', (error) => browserErrors.push(error.message));
+  const username = `e2e_${Date.now()}`;
+  await page.goto('/register');
+  await page.getByLabel('Full name').fill('Alex Morgan');
+  await page.getByLabel('Username', { exact: true }).fill(username);
+  await page.getByLabel('Email address').fill(`${username}@example.com`);
+  await page.getByLabel('Password', { exact: true }).fill('A-strong-Retention!582');
+  await page.getByRole('button', { name: 'Create account' }).click();
+  await expect(page).toHaveURL('/app');
+  await expect(page.getByRole('heading', { name: 'Meet your retention command center' })).toBeVisible();
+  await page.getByRole('link', { name: 'Single prediction', exact: true }).click();
+  for (const [label, value] of [['Customer ID', '2'], ['Age', '30'], ['Tenure', '39'], ['Usage frequency', '14'], ['Support calls', '5'], ['Last interaction', '17'], ['Payment delay', '18'], ['Total spend', '932']]) {
+    await page.getByLabel(label, { exact: true }).fill(value);
+  }
+  await page.getByLabel('Gender').selectOption('Female');
+  await page.getByLabel('Subscription type').selectOption('Standard');
+  await page.getByLabel('Contract length').selectOption('Annual');
+  const responsePromise = page.waitForResponse((response) => response.url().endsWith('/api/predict/') && response.request().method() === 'POST');
+  await page.getByRole('button', { name: 'Predict Churn' }).click();
+  const response = await responsePromise;
+  expect(response.status()).toBe(201);
+  const actual = await response.json();
+  await expect(page.getByText(`${(actual.churn_probability * 100).toFixed(1)}%`, { exact: true })).toBeVisible();
+  await expect(page.getByText('Saved to your prediction history')).toBeVisible();
+  await page.screenshot({ path: testInfo.outputPath('prediction-desktop.png'), fullPage: true, animations: 'disabled' });
+  await page.getByRole('link', { name: 'Prediction history', exact: true }).click();
+  await expect(page.getByRole('button', { name: '#2', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'View 2', exact: true }).click();
+  await expect(page.getByRole('dialog')).toBeVisible();
+  await expect(page.getByRole('dialog').getByText('Customer input snapshot')).toBeVisible();
+  await page.getByRole('button', { name: 'Close details' }).click();
+  await page.getByRole('link', { name: 'Batch analysis', exact: true }).click();
+  const csv = 'CustomerID,Age,Gender,Tenure,Usage Frequency,Support Calls,Payment Delay,Subscription Type,Contract Length,Total Spend,Last Interaction\n2,30,Female,39,14,5,18,Standard,Annual,932,17\n';
+  await page.getByLabel('Upload customer CSV').setInputFiles({ name: 'real-customer.csv', mimeType: 'text/csv', buffer: Buffer.from(csv) });
+  await page.getByRole('button', { name: 'Run batch predictions' }).click();
+  await expect(page.getByText('Analysis complete', { exact: true })).toBeVisible();
+  const downloadPromise = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Download results' }).click();
+  const download = await downloadPromise;
+  expect(download.suggestedFilename()).toMatch(/^churn-results-.*\.csv$/);
+  await page.getByRole('link', { name: 'Overview', exact: true }).click();
+  await expect(page.getByText('2 distinct customers analyzed')).not.toBeVisible();
+  await expect(page.getByText('1 distinct customers analyzed')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Prediction activity' })).toBeVisible();
+  await page.screenshot({ path: testInfo.outputPath('dashboard-desktop.png'), fullPage: true, animations: 'disabled' });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.getByRole('button', { name: 'Open menu' }).click();
+  await page.getByRole('link', { name: 'Single prediction', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Predict Churn' })).toBeVisible();
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
+  expect(overflow).toBe(false);
+  await page.screenshot({ path: testInfo.outputPath('prediction-mobile.png'), fullPage: true, animations: 'disabled' });
+  await page.getByRole('button', { name: 'Open menu' }).click();
+  await page.getByRole('button', { name: 'Sign out', exact: true }).click();
+  await expect(page).toHaveURL('/login');
+  await page.goto('/app/history');
+  await expect(page).toHaveURL('/login');
+  expect(browserErrors).toEqual([]);
+});
+
+test('landing page remains readable on mobile', async ({ page }, testInfo) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/');
+  await expect(page.getByRole('heading', { name: /Know the risk/ })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth)).toBe(false);
+  await page.screenshot({ path: testInfo.outputPath('landing-mobile.png'), fullPage: true, animations: 'disabled' });
+});

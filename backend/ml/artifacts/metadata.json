@@ -1,0 +1,137 @@
+{
+  "version": "lr-v1-a41be7b96f",
+  "trained_at": "2026-10-24T02:01:01.093029+00:00",
+  "algorithm": "Logistic Regression",
+  "features": [
+    "age",
+    "gender",
+    "tenure",
+    "usage_frequency",
+    "support_calls",
+    "payment_delay",
+    "subscription_type",
+    "contract_length",
+    "total_spend",
+    "last_interaction"
+  ],
+  "categorical_features": [
+    "gender",
+    "subscription_type",
+    "contract_length"
+  ],
+  "numeric_features": [
+    "age",
+    "tenure",
+    "usage_frequency",
+    "support_calls",
+    "payment_delay",
+    "total_spend",
+    "last_interaction"
+  ],
+  "categories": {
+    "gender": [
+      "Female",
+      "Male"
+    ],
+    "subscription_type": [
+      "Basic",
+      "Premium",
+      "Standard"
+    ],
+    "contract_length": [
+      "Annual",
+      "Monthly",
+      "Quarterly"
+    ]
+  },
+  "preprocessing": "StandardScaler on seven numerical features; OrdinalEncoder on three categorical features. Both fitted on training partition only.",
+  "methodology": "80/20 split, random_state=42, no stratification (matching the notebook). CustomerID is excluded. LogisticRegression max_iter=1000 for convergence.",
+  "customer_id_policy": "Identifier only; excluded from all production training and inference.",
+  "training_rows": 352665,
+  "validation_rows": 88167,
+  "dropped_missing_rows": 1,
+  "training": {
+    "rows": 352665,
+    "accuracy": 0.8514624360228545,
+    "precision": 0.8807108826155855,
+    "recall": 0.8535531153855774,
+    "f1": 0.866919360001626,
+    "roc_auc": 0.9283804765650163,
+    "confusion_matrix": [
+      [
+        129660,
+        23110
+      ],
+      [
+        29274,
+        170621
+      ]
+    ]
+  },
+  "validation": {
+    "rows": 88167,
+    "accuracy": 0.8504429094786031,
+    "precision": 0.8812267657992565,
+    "recall": 0.8516086539996807,
+    "f1": 0.8661645893386383,
+    "roc_auc": 0.9284322222472001,
+    "confusion_matrix": [
+      [
+        32312,
+        5751
+      ],
+      [
+        7435,
+        42669
+      ]
+    ]
+  },
+  "test": {
+    "rows": 64374,
+    "accuracy": 0.5868518345916053,
+    "precision": 0.5347741509467635,
+    "recall": 0.9826845505525859,
+    "f1": 0.6926241823266995,
+    "roc_auc": 0.775838163765838,
+    "confusion_matrix": [
+      [
+        7813,
+        26068
+      ],
+      [
+        528,
+        29965
+      ]
+    ],
+    "dropped_missing_rows": 0
+  },
+  "source_sha256": "a41be7b96fb85110521bf03d1530879e9ca94b9f5de19866757f6d184300fff7",
+  "sklearn_version": "1.9.0",
+  "risk_thresholds": {
+    "low_below": 0.4,
+    "high_at_least": 0.7
+  },
+  "identifier_comparison": {
+    "validation_with_customer_id": {
+      "rows": 88167,
+      "accuracy": 0.9775426179863214,
+      "precision": 0.9817410106510771,
+      "recall": 0.9786843365799138,
+      "f1": 0.9802102906488626,
+      "roc_auc": 0.9944192940727791,
+      "confusion_matrix": [
+        [
+          37151,
+          912
+        ],
+        [
+          1068,
+          49036
+        ]
+      ]
+    },
+    "identifier_unique_ratio": 1.0,
+    "note": "Notebook-style comparison only. This identifier-based pipeline is not served."
+  },
+  "test_source_sha256": "330af932f2dc1cae917f3bd0fb29395c4021319dd906189b7dc257d0ad58a617"
+}
